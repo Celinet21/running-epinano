@@ -1,0 +1,88 @@
+#!/bin/bash
+
+#PBS -N step5summarize
+
+#PBS -l select=1:ncpus=6:mem=64gb
+
+#PBS -l walltime=11:59:00
+
+#PBS -j oe
+
+#PBS -m ae
+
+#PBS -M z5113283@student.unsw.edu.au
+
+set -e # exit if any command fails
+
+#############################  EDIT ME  #######################################
+
+# Working directory (where output directory will be created).
+my_dir="/srv/scratch/zid"
+# Name of output folder and file prefixes.
+output="INSERT_FOLDER_NAME_HERE"
+
+###############################################################################
+
+cd $my_dir/$output
+
+combined_file="$my_dir/$output/${output}_prediction_RRACH.csv"
+
+# Combine all predictions into one file.
+for file in $my_dir/$output/mapped/*linear.dump.csv;
+do 
+    tail -n+2 $file >> $combined_file
+done;
+
+combined_file="$my_dir/$output/${output}_all_kmers.csv"
+
+# Combine all original KMERS into one file.
+for file in $my_dir/$output/mapped/*.per_site.5mer.csv;
+do 
+    tail -n+2 $file >> $combined_file
+done;
+
+## Get GGAC[CT]
+egrep 'GGAC[CT]' $my_dir/$output/${output}_prediction_RRACH.csv > $my_dir/$output/${output}_prediction_GGAC_CT.csv
+
+## Get GGAC[CT] coverage >= 5
+cat $my_dir/$output/${output}_prediction_GGAC_CT.csv | perl -ne 'print $_ if /^#/; @a = split /,/;  @b = split ":",$a[4]; print $_ if $b[2] > 4;'> $my_dir/$output/${output}_prediction_GGAC_CT_cov_greater5.csv
+
+## Get GGAC[CT] coverage >= 30
+cat $my_dir/$output/${output}_prediction_GGAC_CT.csv | perl -ne 'print $_ if /^#/; @a = split /,/;  @b = split ":",$a[4]; print $_ if $b[2] > 29;'> $my_dir/$output/${output}_prediction_GGAC_CT_cov_greater30.csv
+
+## GGAC[CT] coverage >= 30 UNMODIFIED
+egrep 'mod' $my_dir/$output/${output}_prediction_GGAC_CT_cov_greater30.csv > $my_dir/$output/${output}_prediction_GGAC_CT_prediction_MODIFIED.csv
+## GGAC[CT] coverage >= 30 UNMODIFIED
+egrep 'unm' $my_dir/$output/${output}_prediction_GGAC_CT_cov_greater30.csv > $my_dir/$output/${output}_prediction_GGAC_CT_prediction_UNMODIFIED.csv
+
+total_5mers=$(wc -l $my_dir/$output/${output}_all_kmers.csv)
+total_5mers=$(($total_5mers))
+total_5mers_cov_5=$(cat $my_dir/$output/${output}_all_kmers.csv | perl -ne 'print $_ if /^#/; @a = split /,/;  @b = split ":",$a[4]; print $_ if $b[2] > 4;' | wc -l)
+total_5mers_cov_30=$(cat $my_dir/$output/${output}_all_kmers.csv | perl -ne 'print $_ if /^#/; @a = split /,/;  @b = split ":",$a[4]; print $_ if $b[2] > 29;' | wc -l)
+
+rrach_total=$(wc -l $my_dir/$output/${output}_prediction_RRACH.csv)
+rrach_total=$(($rrach_total))
+rrach_mod=$(egrep 'mod' $my_dir/$output/${output}_prediction_RRACH.csv | wc -l)
+
+ggacct_total=$(wc -l $my_dir/$output/${output}_prediction_GGAC_CT.csv)
+ggacct_mod=$(egrep 'mod' $my_dir/$output/${output}_prediction_GGAC_CT.csv | wc -l)
+ggacct_cov_5_total=$(wc -l $my_dir/$output/${output}_prediction_GGAC_CT_cov_greater5.csv)
+ggacct_cov_5_mod=$(egrep 'mod' $my_dir/$output/${output}_prediction_GGAC_CT_cov_greater5.csv | wc -l)
+ggacct_cov_30_total=$(wc -l $my_dir/$output/${output}_prediction_GGAC_CT_cov_greater30.csv)
+ggacct_cov_30_mod=$(egrep 'mod' $my_dir/$output/${output}_prediction_GGAC_CT_cov_greater30.csv | wc -l)
+
+# Print summary stats into stats.txt
+stats="$my_dir/$output/${output}_stats.txt"
+echo "Stats for $output" > $stats
+echo "No filtering (Total 5mers): $total_5mers" >> $stats
+echo "Cov >= 5 (Total 5mers): $total_5mers_cov_5" >> $stats
+echo "Cov >= 30 (Total 5mers): $total_5mers_cov_30" >> $stats
+echo "---------------" >> $stats
+echo "RRACH filtering (Total 5mers): $rrach_total" >> $stats
+echo "RRACH filtering (Modifications): $rrach_mod" >> $stats
+echo "GGAC[CT] filter (Total 5mers): $ggacct_total" >> $stats
+echo "GGAC[CT] filter (Modifications): $ggacct_mod" >> $stats
+echo "GGAC[CT] filter + Cov >= 5 (Total 5mers): $ggacct_cov_5_total" >> $stats
+echo "GGAC[CT] filter + Cov >= 5 (Modifications): $ggacct_cov_5_mod" >> $stats
+echo "GGAC[CT] filter + Cov >= 30 (Total 5mers): $ggacct_cov_30_total" >> $stats
+echo "GGAC[CT] filter + Cov >= 30 (Modifications): $ggacct_cov_30_mod" >> $stats

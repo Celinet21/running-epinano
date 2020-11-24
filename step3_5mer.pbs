@@ -1,0 +1,68 @@
+#!/bin/bash
+
+#PBS -N step3epi
+
+#PBS -l select=1:ncpus=6:mem=64gb
+
+#PBS -l walltime=11:59:00
+
+#PBS -j oe
+
+#PBS -m ae
+
+#PBS -M INSERT_EMAIL
+
+set -e # exit if any command fails
+
+#############################  EDIT ME  #######################################
+
+# Working directory (where output directory will be created).
+my_dir="/srv/scratch/zid"
+# Name of output folder and file prefixes.
+output="INSERT_FOLDER_NAME_HERE"
+# Path to the EpiNano directory
+epinano_dir="$my_dir/EpiNano"
+# Reference genome path:
+genome_path="$my_dir/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/genome.fa"
+# Basecall reads fastq path:
+basecall_path="$my_dir/dir/pass/tissue.fastq.gz"
+
+###############################################################################
+
+# Python virtual environment path (using python 3.8+)
+virtual_python_path="$my_dir/epinano1"
+
+module load samtools/1.10
+module load bamtools/2.5.1
+
+cd $my_dir
+
+# Create tmp_scripts that will contain pbs job scripts to be submitted at the end.
+mkdir -p $my_dir/$output/tmp_sliding_scripts
+
+count=0
+file_count=0
+batch_size=4 # Change this to the number of Epinano_Variant's you want run in each job.
+
+# If any of the Epinano_Variants fail, it will continue to the next.
+for file in $my_dir/$output/mapped/*per.site.var.csv;
+do 
+    if (($count % $batch_size == 0  || $count == 0)); then
+        ((++file_count))
+        echo "#!/bin/bash" > $my_dir/$output/tmp_sliding_scripts/$file_count.pbs
+        echo "#PBS -N ft_${file_count}_$output" >> $my_dir/$output/tmp_sliding_scripts/$file_count.pbs
+        echo "#PBS -l select=1:ncpus=6:mem=64gb" >> $my_dir/$output/tmp_sliding_scripts/$file_count.pbs
+        echo "#PBS -l walltime=11:59:00" >> $my_dir/$output/tmp_sliding_scripts/$file_count.pbs
+        echo "#PBS -j oe" >> $my_dir/$output/tmp_sliding_scripts/$file_count.pbs
+        echo "#PBS -m ae" >> $my_dir/$output/tmp_sliding_scripts/$file_count.pbs
+        echo "#PBS -M z5113283@student.unsw.edu.au" >> $my_dir/$output/tmp_sliding_scripts/$file_count.pbs
+        echo "module load samtools/1.10" >> $my_dir/$output/tmp_sliding_scripts/$file_count.pbs
+        echo "source $my_dir/$virtual_python_path/bin/activate" >> $my_dir/$output/tmp_sliding_scripts/$file_count.pbs
+    fi
+
+    echo "python3 $epinano_dir/misc/Slide_Variants.py $file 5" >> $my_dir/$output/tmp_sliding_scripts/$file_count.pbs
+    ((++count))
+done;
+
+# Submit the split jobs.
+ls $my_dir/$output/tmp_scripts/*.pbs | xargs -n1 qsub

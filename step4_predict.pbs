@@ -1,0 +1,73 @@
+#!/bin/bash
+
+#PBS -N step4epi
+
+#PBS -l select=1:ncpus=6:mem=64gb
+
+#PBS -l walltime=11:59:00
+
+#PBS -j oe
+
+#PBS -m ae
+
+#PBS -M INSERT_EMAIL
+
+set -e # exit if any command fails
+
+#############################  EDIT ME  #######################################
+
+# Working directory (where output directory will be created).
+my_dir="/srv/scratch/zid"
+# Name of output folder and file prefixes.
+output="INSERT_FOLDER_NAME_HERE"
+# Path to the EpiNano directory
+epinano_dir="$my_dir/EpiNano"
+# Reference genome path:
+genome_path="$my_dir/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/genome.fa"
+# Basecall reads fastq path:
+basecall_path="$my_dir/dir/pass/tissue.fastq.gz"
+
+###############################################################################
+
+# Python 3.6 (not 3.8).
+virtual_python_path="$my_dir/epinano2"
+
+count=0
+file_count=0
+batch_size=3 # Change this to the number of Epinano_Predict's you want run in each job.
+
+
+# Remove previous old scripts
+rm -f $my_dir/$output/tmp_scripts/*
+
+
+# Create tmp_scripts that will contain Epinano_Predict pbs job scripts to be submitted at the end.
+for file in $my_dir/$output/mapped/sorted_${output}.REF_*.5mer.csv;
+do 
+    if (($count % $batch_size == 0  || $count == 0)); then
+        ((++file_count))
+        echo "#!/bin/bash" > $my_dir/$output/tmp_scripts/$file_count.pbs
+        echo "#PBS -N ft_${output}_$file_count" >> $my_dir/$output/tmp_scripts/$file_count.pbs
+        echo "#PBS -l select=1:ncpus=6:mem=64gb" >> $my_dir/$output/tmp_scripts/$file_count.pbs
+        echo "#PBS -l walltime=11:59:00" >> $my_dir/$output/tmp_scripts/$file_count.pbs
+        echo "#PBS -j oe" >> $my_dir/$output/tmp_scripts/$file_count.pbs
+        echo "#PBS -m ae" >> $my_dir/$output/tmp_scripts/$file_count.pbs
+        echo "#PBS -M z5113283@student.unsw.edu.au" >> $my_dir/$output/tmp_scripts/$file_count.pbs
+        echo "module load samtools/1.10" >> $my_dir/$output/tmp_scripts/$file_count.pbs
+        echo "source $my_dir/$virtual_python_path/bin/activate" >> $my_dir/$output/tmp_scripts/$file_count.pbs
+    fi
+
+    # Filter non-RRACH motifs into new file.
+    filtered_path=${file%.csv}_RRACH_filtered.csv
+    old_header=$(head -n 1 $file)
+    egrep '[AG][AG]AC[ACT]' $file > $filtered_path
+    sed -i "1s/^/$old_header\n/" $filtered_path
+
+
+    echo "python3 $epinano_dir/Epinano_Predict.py \
+    --model $epinano_dir/models/rrach.q3.mis3.del3.linear.dump \
+    --predict $filtered_path \
+    --columns 8,13,23 \
+    --out_prefix ${file}_prediction" >> $my_dir/$output/tmp_scripts/$file_count.pbs
+    ((++count))
+done;
