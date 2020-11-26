@@ -32,6 +32,7 @@ basecall_path="$my_dir/dir/pass/tissue.fastq.gz"
 
 module load minimap2/2.17
 module load samtools/1.10
+module load bamtools/2.5.1
 
 cd $my_dir
 mkdir -p $output/mapped

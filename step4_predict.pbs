@@ -54,7 +54,7 @@ do
         echo "#PBS -m ae" >> $my_dir/$output/tmp_scripts/$file_count.pbs
         echo "#PBS -M z5113283@student.unsw.edu.au" >> $my_dir/$output/tmp_scripts/$file_count.pbs
         echo "module load samtools/1.10" >> $my_dir/$output/tmp_scripts/$file_count.pbs
-        echo "source $my_dir/$virtual_python_path/bin/activate" >> $my_dir/$output/tmp_scripts/$file_count.pbs
+        echo "source $virtual_python_path/bin/activate" >> $my_dir/$output/tmp_scripts/$file_count.pbs
     fi
 
     # Filter non-RRACH motifs into new file.
@@ -71,3 +71,6 @@ do
     --out_prefix ${file}_prediction" >> $my_dir/$output/tmp_scripts/$file_count.pbs
     ((++count))
 done;
+
+# Submit the split jobs.
+ls $my_dir/$output/tmp_scripts/*.pbs | xargs -n1 qsub

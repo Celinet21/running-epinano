@@ -58,7 +58,7 @@ do
         echo "#PBS -m ae" >> $my_dir/$output/tmp_scripts/$file_count.pbs
         echo "#PBS -M z5113283@student.unsw.edu.au" >> $my_dir/$output/tmp_scripts/$file_count.pbs
         echo "module load samtools/1.10" >> $my_dir/$output/tmp_scripts/$file_count.pbs
-        echo "source $my_dir/$virtual_python_path/bin/activate" >> $my_dir/$output/tmp_scripts/$file_count.pbs
+        echo "source $virtual_python_path/bin/activate" >> $my_dir/$output/tmp_scripts/$file_count.pbs
     fi
 
     echo "python3 $epinano_dir/Epinano_Variants.py -n 6 -R $genome_path -b $file -s $epinano_dir/misc/sam2tsv.jar --type g" >> $my_dir/$output/tmp_scripts/$file_count.pbs

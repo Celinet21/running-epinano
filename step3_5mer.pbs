@@ -45,7 +45,7 @@ file_count=0
 batch_size=4 # Change this to the number of Epinano_Variant's you want run in each job.
 
 # If any of the Epinano_Variants fail, it will continue to the next.
-for file in $my_dir/$output/mapped/*per.site.var.csv;
+for file in `ls -v $my_dir/$output/mapped/*per.site.csv`;
 do 
     if (($count % $batch_size == 0  || $count == 0)); then
         ((++file_count))
@@ -57,7 +57,7 @@ do
         echo "#PBS -m ae" >> $my_dir/$output/tmp_sliding_scripts/$file_count.pbs
         echo "#PBS -M z5113283@student.unsw.edu.au" >> $my_dir/$output/tmp_sliding_scripts/$file_count.pbs
         echo "module load samtools/1.10" >> $my_dir/$output/tmp_sliding_scripts/$file_count.pbs
-        echo "source $my_dir/$virtual_python_path/bin/activate" >> $my_dir/$output/tmp_sliding_scripts/$file_count.pbs
+        echo "source $virtual_python_path/bin/activate" >> $my_dir/$output/tmp_sliding_scripts/$file_count.pbs
     fi
 
     echo "python3 $epinano_dir/misc/Slide_Variants.py $file 5" >> $my_dir/$output/tmp_sliding_scripts/$file_count.pbs
@@ -65,4 +65,4 @@ do
 done;
 
 # Submit the split jobs.
-ls $my_dir/$output/tmp_scripts/*.pbs | xargs -n1 qsub
+ls $my_dir/$output/tmp_sliding_scripts/*.pbs | xargs -n1 qsub
