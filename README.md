@@ -45,7 +45,7 @@ python3 Running_Epinano/convert_csv_to_bed.py path/output/output_prediction_GGAC
 
 ## Analysis
 
-###Gencode Example (get list of genes)
+### Gencode Example (get list of genes)
 ```
 bedtools intersect -s -a brain_full/brain_prediction_GGAC[CT]_cov_greater30_UNMODIFIED.bed -b gencode.v35.annotation.gtf -wa -wb | awk '{if($9=="gene"){print $0}}' > brain_full/output_genes_only_UNMODIFIED.bed
 python3 $my_dir/epinano_scripts/intersect_to_genes.py brain_full/output_genes_only_UNMODIFIED.bed brain_full/brain_UNMODIFIED_genes.txt
@@ -54,6 +54,6 @@ python3 $my_dir/epinano_scripts/intersect_to_genes.py brain_full/output_genes_on
 awk '{print $8}' brain_full/brain_modified_genes.txt | sort | uniq -c
 ```
 
-###Annotatr
+### Annotatr
 Use R script Annotatr to class your modifications as 3'UTR, 5'UTR or exon.
 
